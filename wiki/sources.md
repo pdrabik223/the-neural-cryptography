@@ -2,3 +2,5 @@
 - Spiking NN <https://analyticsindiamag.com/a-tutorial-on-spiking-neural-networks-for-beginners/>
 - AES in python <https://www.delftstack.com/howto/python/python-aes-encryption/>
 - Research on Plaintext Restoration of AES Based on Neural Network <https://www.hindawi.com/journals/scn/2018/6868506/>
+- Pycryptodome <https://pycryptodome.readthedocs.io/en/latest/index.html>
+- DES algorithm <https://en.wikipedia.org/wiki/Data_Encryption_Standard>
