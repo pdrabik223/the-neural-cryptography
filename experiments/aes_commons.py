@@ -1,6 +1,7 @@
 from numpy import uint8
 from typing import List
-
+import numpy as np
+import math
 AES_SBOX = (
             0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
             0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -50,7 +51,6 @@ def inv_sub_bytes(data_block:List[uint8])->List[uint8]:
             data_block[i] = AES_SVBOX_INV[b]
         return data_block
 
-@staticmethod
 def g_mul(a:uint8, b:uint8):
     p = 0
     for _ in range(8):
@@ -62,17 +62,35 @@ def g_mul(a:uint8, b:uint8):
         b >>= 1
     return p
     
-def mix_columns(self):
-        ss = []
-        for c in range(4):
-            col = self.state[c*4:(c+1)*4]
-            ss.extend((
-                        g_mul([0x02][col[0]]) ^ g_mul([0x03][col[1]]) ^                col[2]  ^                col[3] ,
-                                       col[0]  ^ g_mul([0x02][col[1]]) ^ g_mul([0x03][col[2]]) ^                col[3] ,
-                                       col[0]  ^                col[1]  ^ g_mul([0x02][col[2]]) ^ g_mul([0x03][col[3]]),
-                        g_mul([0x03][col[0]]) ^                col[1]  ^                col[2]  ^ g_mul([0x02][col[3]]),
-                    ))
-        self.state = ss
+def mix_columns(data_block:List[uint8])->List[uint8]:
+    assert(len(data_block) == 128 // 8)
+    ss:List[uint8] = []
+    for c in range(4):
+        col = data_block[c*4:(c+1)*4]
+        ss.extend((g_mul(uint8(0x02),col[0])  ^ g_mul(uint8(0x03),col[1]) ^                col[2]      ^                col[3],
+                                   col[0]      ^ g_mul(uint8(0x02),col[1]) ^ g_mul(uint8(0x03),col[2]) ^                col[3],
+                                   col[0]      ^                col[1]      ^ g_mul(uint8(0x02),col[2]) ^ g_mul(uint8(0x03),col[3]),
+                    g_mul(uint8(0x03),col[0]) ^                col[1]      ^                col[2]      ^ g_mul(uint8(0x02),col[3]),
+                ))
+    data_block = ss
+    return data_block
+
+def little_mix_columns(data_block:List[uint8])->List[uint8]:
+    """uses quarter of Rijndael  matrix 
+
+    """
+    assert(len(data_block) == 128 // 8 // 4) 
+    ss:List[uint8] = []
+    for c in range(2):
+        col = data_block[c*2:(c+1)*2]
+        ss.extend((g_mul(uint8(0x02),col[0])  ^ g_mul(uint8(0x03),col[1]) ,
+                                   col[0]      ^ g_mul(uint8(0x02),col[1]),
+                    
+                ))
+    data_block = ss
+    return data_block
+        
+ 
 def add_round_key(data_block:List[uint8], key:List[uint8])->List[uint8]:
     # if not isinstance(data_block, List[uint8]):
     #     raise TypeError(f"given data_block with incorrect type, expected List[uint8] got {type(data_block)} ")
@@ -92,8 +110,9 @@ def shift_rows(data_block:List[uint8])->List[uint8]:
         print("provided data_block is incorrect size, using ")
     rows = []
     no_shifts = math.ceil(math.sqrt(len(data_block)))
-    for r in range( math.ceil(len(data_block) / no_shifts) ):
-        if r + 1< math.ceil(len(data_block) / no_shifts) :
+    no_rows = math.ceil(len(data_block) / no_shifts)
+    for r in range( no_rows):
+        if r + 1< no_rows :
             rows.append(data_block[r*no_shifts : (r+1)*no_shifts])
         else :
             rows.append(data_block[r*no_shifts :])
@@ -113,8 +132,9 @@ def inv_shift_rows(data_block:List[uint8])->List[uint8]:
         print("provided data_block is incorrect size, using ")
     rows = []
     no_shifts = math.ceil(math.sqrt(len(data_block)))
-    for r in range( math.ceil(len(data_block) / no_shifts) ):
-        if r + 1< math.ceil(len(data_block) / no_shifts) :
+    no_rows = math.ceil(len(data_block) / no_shifts)
+    for r in range( no_rows) :
+        if r + 1< no_rows :
             rows.append(data_block[r*no_shifts : (r+1)*no_shifts])
         else :
             rows.append(data_block[r*no_shifts :])
